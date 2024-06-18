@@ -50,22 +50,11 @@ install.packages('dplyr')
    - Visualize important words using TF-IDF by decade and president.
    - Analyze and visualize popular words per decade.
 
-## Example Plots
 
-### Most Frequently Used Words in Presidential Speeches
-![Most Frequently Used Words](example_plot1.png)
 
-### Important Words using TF-IDF by Decade
-![Important Words using TF-IDF](example_plot2.png)
-
-### Top 10 Most Popular Words per Decade
-![Top 10 Most Popular Words per Decade](example_plot3.png)
 
 ## Contributing
 
 If you have any suggestions or improvements, feel free to open an issue or submit a pull request.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
