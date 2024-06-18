@@ -1,0 +1,190 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+install.packages("tidyverse")
+install.packages("tidytext")
+install.packages("sotu")
+install.packages("dplyr")
+```
+
+```{r}
+
+library(tidyverse)
+library(tidytext)
+library(sotu)
+library(dplyr)
+```
+
+```{r}
+df <- sotu::sotu_meta %>% 
+  mutate(text = sotu::sotu_text,
+         speech_id = 1:length(sotu::sotu_text)) %>% 
+  select(speech_id, president, year, text)
+
+head(df)
+```
+
+```{r}
+fix.contractions <- function(doc) {
+
+doc <- gsub("won't", "will not", doc)
+doc <- gsub("can't", "can not", doc)
+doc <- gsub("n't", " not", doc)
+doc <- gsub("'ll", " will", doc)
+doc <- gsub("'re", " are", doc)
+doc <- gsub("'ve", " have", doc)
+doc <- gsub("'m", " am", doc)
+doc <- gsub("'d", " would", doc)
+doc <- gsub("'s", "", doc)
+return(doc)
+}
+
+df$text <- sapply(df$text, fix.contractions)
+```
+
+```{r}
+tidy_sotu <- df %>% 
+  unnest_tokens( 'word', text)
+
+head(tidy_sotu)
+#tidy_sotu
+```
+
+```{r}
+undesirable_words <- c("now","of","our","and","will","toward","plenty","which","can","your","as","has","within","among","regard",
+                       "one","such")
+
+tidy_sotu <-tidy_sotu %>%
+  anti_join(stop_words) %>%
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) 
+  
+head(tidy_sotu)
+```
+
+```{r}
+#Task 9 
+frequent_words <- tidy_sotu %>%
+  anti_join(stop_words)%>%
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) %>%
+  group_by(year) %>%
+  count(year, word, sort = TRUE)  %>%   #Counting the words for each song
+  top_n(10) 
+head(frequent_words)
+```
+
+```{r}
+my_colors <- c("#E69F00", "#56B4E9", "#009E73", "#CC79A7", "#D55E00", "#D65E00")
+
+
+tidy_sotu %>%
+  count(word, sort = TRUE) %>%                 
+  top_n(10) %>%
+  ungroup() %>%                           
+  mutate(word = reorder(word, n)) %>%         
+    ggplot() +
+    geom_col(aes(word, n), fill = my_colors[2]) +
+    xlab("") + 
+    ylab("Word Count") +
+    ggtitle("Most Frequently Used Words in Presidential Speechs") +
+    coord_flip()
+```
+
+```{r}
+#tidy_sotu
+```
+
+```{r}
+unique(tidy_sotu$year)
+```
+
+```{r}
+tidy_sotu <- tidy_sotu %>%
+ mutate(decade =
+   ifelse(tidy_sotu$year %in% 1790:1799, "1700s",
+   ifelse(tidy_sotu$year %in% 1800:1899, "1800s",
+   ifelse(tidy_sotu$year %in% 1900:1999, "1900s",
+   ifelse(tidy_sotu$year %in% 2000:2020, "2000s",
+                                            "NA")))))
+```
+
+```{r}
+#tidy_sotu
+```
+
+```{r}
+popular_words <- tidy_sotu %>%
+  anti_join(stop_words)%>%
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) %>%
+  group_by(decade) %>%
+  count(decade, word, sort = TRUE)     #Counting the words for each song
+
+head(popular_words)
+```
+
+```{r}
+popular_words_president <- tidy_sotu %>%
+  anti_join(stop_words)%>%
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) %>%
+  group_by(president) %>%
+  count(president, word, sort = TRUE)     #Counting the words for each song
+
+head(popular_words_president)
+```
+
+```{r}
+popular_tfidf_words <- tidy_sotu %>%
+  unnest_tokens("word", word) %>%
+  anti_join(stop_words)%>% 
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) %>%
+  count(decade, word, sort = FALSE) %>%  
+  bind_tf_idf(word,decade, n)
+  
+
+
+head(popular_tfidf_words)
+
+
+
+
+```
+
+```{r}
+library(ggplot2)
+
+library(ggplot2)
+
+popular_tfidf_words <- tidy_sotu %>%
+  unnest_tokens("word", word) %>%
+  anti_join(stop_words) %>%
+  filter(!word %in% undesirable_words) %>%
+  filter(nchar(word) > 3) %>%
+  count(decade, word, sort = FALSE) %>%
+  bind_tf_idf(word, decade, n)
+
+top_words <- popular_tfidf_words %>%
+  group_by(decade) %>%
+  top_n(10, wt = tf_idf) %>%
+  ungroup() %>%
+  arrange(desc(tf_idf))
+
+ggplot(top_words, aes(x = reorder(word, tf_idf), y = tf_idf, fill = decade)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ decade, scales = "free", nrow = 2) +
+  coord_flip() +
+  labs(title = "Top Words per Decade based on TF-IDF",
+       x = "Word",
+       y = "TF-IDF") +
+  theme_minimal()
+
+```
+
+# 
